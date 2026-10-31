@@ -18,13 +18,15 @@ STRIDE = 8
 
 # Nos 3 ancres (largeur, hauteur) normalisées. 
 # C'est la base de "l'Option A" : un carré, un rectangle horizontal, un vertical.
-ANCHORS = ((0.25, 0.25), (0.40, 0.15), (0.15, 0.40))
+ANCHORS = ((0.25, 0.25), (0.33, 0.33), (0.15, 0.15))
 
 # --- CORRECTION DE LA LIMITE 1 ---
 # Le réseau utilise une sigmoïde en sortie, donc la valeur max prédite est 1.0.
 # Si on ne met pas ce ratio, une boîte ne pourra jamais être plus grande que son ancre.
 # Avec RATIO_MAX = 3.0, la sigmoïde peut "gonfler" la boîte jusqu'à 3 fois la taille de l'ancre.
 RATIO_MAX = 3.0
+SCORE_THRESHOLD = 0.7
+NMS_IOU_THRESHOLD = 0.45
 
 def iou(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """IoU entre une boîte a (4,) et des boîtes b (N, 4). (inchangé)"""
@@ -210,9 +212,10 @@ def compute_loss(logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     
     return obj_loss + 10.0 * nn.functional.mse_loss(pred_box, true_box)
 
-def predict(logits: torch.Tensor, size: int = 64, anchors=ANCHORS, 
-            score_threshold: float = 0.5, iou_threshold: float = 0.7) -> tuple[torch.Tensor, torch.Tensor]:
-    """Renvoie les boîtes validées après filtrage (confiance > 50% et NMS)."""
+def predict(logits: torch.Tensor, size: int = 64, anchors=ANCHORS,
+            score_threshold: float = SCORE_THRESHOLD,
+            iou_threshold: float = NMS_IOU_THRESHOLD) -> tuple[torch.Tensor, torch.Tensor]:
+    """Renvoie les boîtes validées après score minimal et NMS."""
     boxes, scores = decode(logits, size, anchors)
     
     # 1. On vire tout ce qui a un score de confiance en dessous de notre seuil (50%).
@@ -223,7 +226,7 @@ def predict(logits: torch.Tensor, size: int = 64, anchors=ANCHORS,
         return torch.zeros((0, 4), device=logits.device), torch.zeros(0, device=logits.device)
         
     # 2. Le tri final : le NMS.
-    # A 0.3, le NMS supprimait 94% des cercles collés. A 0.7, il est plus tolérant et les garde !
+    # Un seuil de 0.45 limite les doublons tout en conservant les objets proches.
     kept = torch.tensor(nms(boxes, scores, iou_threshold), dtype=torch.long)
     
     return boxes[kept], scores[kept]

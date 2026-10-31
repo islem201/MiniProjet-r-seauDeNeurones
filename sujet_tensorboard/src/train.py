@@ -8,7 +8,10 @@ import torch
 from torch.utils.data import DataLoader
 
 # On importe RATIO_MAX et ANCHORS pour nos calculs
-from src.detector import Detector, ShapeDataset, compute_loss, iou, predict, STRIDE, ANCHORS, RATIO_MAX
+from src.detector import (
+    Detector, ShapeDataset, compute_loss, iou, predict, STRIDE, ANCHORS,
+    RATIO_MAX, SCORE_THRESHOLD, NMS_IOU_THRESHOLD,
+)
 
 def train(model: Detector, loader: DataLoader, optimizer: torch.optim.Optimizer) -> float:
     """Entraîne le modèle sur une époque et retourne la perte moyenne."""
@@ -38,7 +41,13 @@ def evaluate(model: Detector, loader: DataLoader, size: int) -> dict:
             
             for logit, target in zip(logits, targets):
                 # 1. On récupère TOUTES les boîtes prédites valides
-                pred_boxes, _ = predict(logit, size, model.anchors)
+                pred_boxes, _ = predict(
+                    logit,
+                    size,
+                    model.anchors,
+                    score_threshold=SCORE_THRESHOLD,
+                    iou_threshold=NMS_IOU_THRESHOLD,
+                )
                 n_preds += len(pred_boxes)
                 
                 # 2. Reconstruction de TOUTES les vraies boîtes depuis les 15 canaux
