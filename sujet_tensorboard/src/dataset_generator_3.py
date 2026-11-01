@@ -32,7 +32,7 @@ def draw_shape(draw, shape, box):
         )
 
 
-def make_example(size, shape, rng, min_objects = 2, max_objects = 2):
+def make_example(size, shape, rng, min_objects = 2, max_objects = 4):
     background = rng.randint(225, 250)
     image = Image.new("RGB", (size, size), (background,) * 3)
     draw = ImageDraw.Draw(image)
@@ -109,7 +109,7 @@ def generate(
 
         for i in range(total):
             image, label = make_example(
-                size, shape, min_objects, max_objects, rng
+                size, shape, rng, min_objects, max_objects
             )
             image.save(folder / f"{i:05d}.png")
             (folder / f"{i:05d}.txt").write_text(
