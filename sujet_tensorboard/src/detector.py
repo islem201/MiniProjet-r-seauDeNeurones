@@ -25,7 +25,7 @@ ANCHORS = ((0.25, 0.25), (0.33, 0.33), (0.15, 0.15))
 # Si on ne met pas ce ratio, une boîte ne pourra jamais être plus grande que son ancre.
 # Avec RATIO_MAX = 3.0, la sigmoïde peut "gonfler" la boîte jusqu'à 3 fois la taille de l'ancre.
 RATIO_MAX = 3.0
-SCORE_THRESHOLD = 0.5
+SCORE_THRESHOLD = 0.7
 NMS_IOU_THRESHOLD = 0.45
 
 def iou(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -196,7 +196,7 @@ def compute_loss(logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     
     # 1. Erreur sur la présence (BCE) calculée pour toutes les cases de toutes les ancres.
     obj_loss = nn.functional.binary_cross_entropy_with_logits(
-        logits[:, :, 0], target[:, :, 0], pos_weight=torch.tensor(15.0))
+        logits[:, :, 0], target[:, :, 0], pos_weight=torch.tensor(10.0))
         
     # 2. Masque : on isole les rares endroits où il y a vraiment un cercle.
     positive = target[:, :, 0] > 0.5 
